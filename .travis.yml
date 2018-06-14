@@ -1,0 +1,43 @@
+language: c
+
+before_install:
+  - cd ..
+  - wget http://nginx.org/download/nginx-1.15.0.tar.gz
+  - tar zxf nginx-1.15.0.tar.gz
+  - if [[ "$WITH_PCRE" == "1" ]]; then wget https://ftp.pcre.org/pub/pcre/pcre-8.42.tar.bz2; fi
+  - if [[ "$WITH_PCRE" == "1" ]]; then tar jxf pcre-8.42.tar.bz2; fi
+
+script:
+  - cd nginx-1.15.0
+  - mkdir dest
+  - if [[ "$WITH_PCRE" == "1" ]]; then ./configure --prefix=$(pwd)/dest --with-pcre=$(pwd)/../pcre-8.42 --add-module=$(pwd)/../njs/nginx; fi
+  - if [[ "$WITH_PCRE" == "0" ]]; then ./configure --prefix=$(pwd)/dest --add-module=$(pwd)/../njs/nginx; fi
+  - make install
+  - cd dest
+  - ./sbin/nginx -V
+  - wget https://gist.github.com/CarterLi/43e4eb1a74265d15a8ff7313e500bb6d/raw/1facd547d040332b9556d03c74c0c7aaae7884aa/http_js.conf
+  - wget https://gist.github.com/CarterLi/43e4eb1a74265d15a8ff7313e500bb6d/raw/1facd547d040332b9556d03c74c0c7aaae7884aa/http.js
+  - ./sbin/nginx -c http_js.conf
+  - curl 'http://127.0.0.1:7000/summary'
+
+matrix:
+  include:
+    - os: linux
+      compiler: gcc
+      dist: trusty
+      env: WITH_PCRE=1
+
+    - os: linux
+      compiler: gcc
+      dist: trusty
+      env: WITH_PCRE=0
+
+    - os: osx
+      compiler: clang
+      osx_image: xcode9.3
+      env: WITH_PCRE=1
+
+    - os: osx
+      compiler: clang
+      osx_image: xcode9.3
+      env: WITH_PCRE=0
